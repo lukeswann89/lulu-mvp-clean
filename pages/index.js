@@ -6,6 +6,7 @@ export default function Home() {
   const [mode, setMode] = useState('Suggest Changes');
   const [suggestions, setSuggestions] = useState([]);
   const [rewrittenText, setRewrittenText] = useState('');
+  const [justifications, setJustifications] = useState([]);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   async function handleSubmit() {
@@ -13,6 +14,7 @@ export default function Home() {
     setError('');
     setSuggestions([]);
     setRewrittenText('');
+    setJustifications([]);
     try {
       const res = await fetch('/api/gpt', {
         method: 'POST',
@@ -25,6 +27,7 @@ export default function Home() {
       }
       if (mode === 'Rewrite') {
         setRewrittenText(data.rewrittenText);
+        setJustifications(data.justifications || []);
       } else {
         setSuggestions(data.suggestions);
       }
@@ -33,6 +36,11 @@ export default function Home() {
     } finally {
       setLoading(false);
     }
+  }
+  function formatRewrittenText(text) {
+    const withBold = text.replace(/\[ADDED\](.*?)\[\/ADDED\]/g, '<strong>$1</strong>');
+    const withStrikethrough = withBold.replace(/\[REMOVED\](.*?)\[\/REMOVED\]/g, '<del>$1</del>');
+    return withStrikethrough;
   }
   return (
     <div className="min-h-screen bg-gray-50 p-6">
@@ -74,12 +82,11 @@ export default function Home() {
       </div>
       {error && <div className="text-red-500 mb-4">{error}</div>}
       {rewrittenText && (
-        <div className="bg-white p-4 border rounded">
+        <div className="bg-white p-4 border rounded mb-6">
           <h2 className="text-2xl font-semibold mb-2">Lulu's Rewritten Text</h2>
-          <p>{rewrittenText}</p>
+          <p dangerouslySetInnerHTML={{ __html: formatRewrittenText(rewrittenText) }} />
         </div>
       )}
-      {suggestions.length > 0 && <SuggestionPanel suggestions={suggestions} />}
-    </div>
-  );
-}
+      {justifications.length > 0 && (
+        <div className="bg-white p-4 border rounded mb-6">
+          <h3 class
