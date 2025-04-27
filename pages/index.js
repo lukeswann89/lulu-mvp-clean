@@ -89,4 +89,15 @@ export default function Home() {
       )}
       {justifications.length > 0 && (
         <div className="bg-white p-4 border rounded mb-6">
-          <h3 class
+          <h3 className="text-xl font-semibold mb-2">Justifications</h3>
+          <ul className="list-disc list-inside">
+            {justifications.map((point, idx) => (
+              <li key={idx}>{point}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+      {suggestions.length > 0 && <SuggestionPanel suggestions={suggestions} />}
+    </div>
+  );
+}
