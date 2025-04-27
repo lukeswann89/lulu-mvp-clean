@@ -38,7 +38,8 @@ export default function Home() {
     }
   }
   function formatRewrittenText(text) {
-    const withBold = text.replace(/\[ADDED\](.*?)\[\/ADDED\]/g, '<strong>$1</strong>');
+    const cleaned = text.replace(/"""|“””|“/g, '').trim();
+    const withBold = cleaned.replace(/\[ADDED\](.*?)\[\/ADDED\]/g, '<strong>$1</strong>');
     const withStrikethrough = withBold.replace(/\[REMOVED\](.*?)\[\/REMOVED\]/g, '<del>$1</del>');
     return withStrikethrough;
   }
