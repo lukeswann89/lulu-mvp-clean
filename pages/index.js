@@ -5,17 +5,34 @@ export default function Home() {
   const [editType, setEditType] = useState('Developmental');
   const [mode, setMode] = useState('Suggest Changes');
   const [suggestions, setSuggestions] = useState([]);
+  const [rewrittenText, setRewrittenText] = useState('');
+  const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   async function handleSubmit() {
     setLoading(true);
-    const res = await fetch('/api/gpt', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text, editType, mode }),
-    });
-    const data = await res.json();
-    setSuggestions(data.suggestions);
-    setLoading(false);
+    setError('');
+    setSuggestions([]);
+    setRewrittenText('');
+    try {
+      const res = await fetch('/api/gpt', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text, editType, mode }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Something went wrong.');
+      }
+      if (mode === 'Rewrite') {
+        setRewrittenText(data.rewrittenText);
+      } else {
+        setSuggestions(data.suggestions);
+      }
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
   }
   return (
     <div className="min-h-screen bg-gray-50 p-6">
@@ -55,7 +72,14 @@ export default function Home() {
           {loading ? 'Thinking...' : 'Submit to Lulu'}
         </button>
       </div>
-      <SuggestionPanel suggestions={suggestions} />
+      {error && <div className="text-red-500 mb-4">{error}</div>}
+      {rewrittenText && (
+        <div className="bg-white p-4 border rounded">
+          <h2 className="text-2xl font-semibold mb-2">Lulu's Rewritten Text</h2>
+          <p>{rewrittenText}</p>
+        </div>
+      )}
+      {suggestions.length > 0 && <SuggestionPanel suggestions={suggestions} />}
     </div>
   );
 }
