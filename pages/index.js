@@ -41,9 +41,13 @@ export default function Home() {
     }
   }
   function acceptSuggestion(original, suggestion) {
-    const regex = new RegExp(original.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g');
-    const updated = editableText.replace(regex, suggestion);
-    setEditableText(updated);
+    if (editableText.includes(original)) {
+      const regex = new RegExp(original.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g');
+      const updated = editableText.replace(regex, suggestion);
+      setEditableText(updated);
+    } else {
+      setEditableText(prev => prev + ' ' + suggestion);
+    }
     setSuggestions(prev => prev.filter(sug => sug.original !== original));
   }
   function rejectSuggestion(original) {
