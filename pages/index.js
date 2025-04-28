@@ -10,6 +10,8 @@ export default function Home() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [editableText, setEditableText] = useState('');
+  const [activeRevise, setActiveRevise] = useState(null);
+  const [userRevisions, setUserRevisions] = useState({});
   async function handleSubmit() {
     setLoading(true);
     setError('');
@@ -41,17 +43,32 @@ export default function Home() {
     }
   }
   function acceptSuggestion(original, suggestion) {
+    const finalText = userRevisions[original] || suggestion;
     if (editableText.includes(original)) {
       const regex = new RegExp(original.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g');
-      const updated = editableText.replace(regex, suggestion);
+      const updated = editableText.replace(regex, finalText);
       setEditableText(updated);
     } else {
-      setEditableText(prev => prev + ' ' + suggestion);
+      setEditableText(prev => prev + ' ' + finalText);
     }
     setSuggestions(prev => prev.filter(sug => sug.original !== original));
+    const updatedRevisions = { ...userRevisions };
+    delete updatedRevisions[original];
+    setUserRevisions(updatedRevisions);
+    setActiveRevise(null);
   }
   function rejectSuggestion(original) {
     setSuggestions(prev => prev.filter(sug => sug.original !== original));
+    const updatedRevisions = { ...userRevisions };
+    delete updatedRevisions[original];
+    setUserRevisions(updatedRevisions);
+    setActiveRevise(null);
+  }
+  function saveRevision(original, revision) {
+    if (revision.trim() !== '') {
+      setUserRevisions(prev => ({ ...prev, [original]: `LS: ${revision.trim()}` }));
+    }
+    setActiveRevise(null);
   }
   function formatRewrittenText(text) {
     const cleaned = text.replace(/"""|“””|“|”/g, '').replace(/\n/g, ' ').trim();
@@ -61,7 +78,7 @@ export default function Home() {
   }
   return (
     <div className="min-h-screen bg-gray-100 p-8">
-      <div className="max-w-4xl mx-auto bg-white shadow-md rounded-xl p-8">
+      <div className="max-w-4xl mx-auto bg-white shadow-md rounded-xl p-8 relative">
         <h1 className="text-4xl font-bold mb-6 text-center">Lulu Mentor App</h1>
         <textarea
           className="w-full p-4 border rounded-lg mb-6 text-lg"
@@ -120,13 +137,12 @@ export default function Home() {
         )}
         {suggestions.length > 0 && (
           <div className="bg-gray-50 p-6 rounded-lg shadow-sm">
-            <h2 className="text-2xl font-semibold mb-4">Lulu's Suggestions</h2>
+            <h2 className="text-2xl font-semibold mb-4">Lulu's Comments</h2>
             {suggestions.map((sug, index) => (
-              <div key={index} className="border-t py-4">
+              <div key={index} className="border-t py-4 relative">
                 <p className="mb-1"><strong>Original:</strong> {sug.original}</p>
-                <p className="mb-1"><strong>Suggestion:</strong> {sug.suggestion}</p>
-                <p className="mb-3"><strong>Why:</strong> {sug.why}</p>
-                <div className="flex gap-3">
+                <p className="mb-1"><strong>Revision:</strong> {sug.suggestion}</p>
+                <div className="flex gap-3 my-2">
                   <button
                     className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg"
                     onClick={() => acceptSuggestion(sug.original, sug.suggestion)}
@@ -139,7 +155,33 @@ export default function Home() {
                   >
                     Reject
                   </button>
+                  <button
+                    className="bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-lg"
+                    onClick={() => setActiveRevise(sug.original)}
+                  >
+                    Revise
+                  </button>
                 </div>
+                <p className="text-sm italic mb-2"><strong>Why:</strong> {sug.why}</p>
+                {userRevisions[sug.original] && (
+                  <p className="text-sm italic"><strong>Revise (LS):</strong> {userRevisions[sug.original]}</p>
+                )}
+                {activeRevise === sug.original && (
+                  <div className="absolute top-4 right-[-320px] bg-white shadow-lg rounded-lg p-4 w-72 z-10 border">
+                    <textarea
+                      className="w-full p-2 border rounded mb-2 text-sm"
+                      placeholder="Write your revision..."
+                      defaultValue={userRevisions[sug.original] ? userRevisions[sug.original].replace(/^LS:\s*/, '') : ''}
+                      onBlur={(e) => saveRevision(sug.original, e.target.value)}
+                    />
+                    <button
+                      onClick={() => setActiveRevise(null)}
+                      className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded w-full text-sm"
+                    >
+                      Close
+                    </button>
+                  </div>
+                )}
               </div>
             ))}
           </div>
