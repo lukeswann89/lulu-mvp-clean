@@ -43,14 +43,15 @@ export default function Home() {
       setLoading(false);
     }
   }
-  function acceptSuggestion(original, suggestion) {
-    const finalText = userRevisions[original] || suggestion;
+  function acceptSuggestion(original) {
+    const custom = userRevisions[original];
+    const finalText = custom ? custom.replace(/^LS:\s*/, '') : getSuggestion(original);
     if (editableText.includes(original)) {
       const regex = new RegExp(original.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g');
-      const updated = editableText.replace(regex, finalText.startsWith('LS: ') ? finalText.slice(4) : finalText);
+      const updated = editableText.replace(regex, finalText);
       setEditableText(updated);
     } else {
-      setEditableText(prev => prev + ' ' + (finalText.startsWith('LS: ') ? finalText.slice(4) : finalText));
+      setEditableText(prev => prev + ' ' + finalText);
     }
     setSuggestions(prev => prev.filter(sug => sug.original !== original));
     const updatedRevisions = { ...userRevisions };
@@ -80,6 +81,10 @@ export default function Home() {
     setUserRevisions(updatedRevisions);
     setActiveRevise(null);
     setTempRevision('');
+  }
+  function getSuggestion(original) {
+    const match = suggestions.find(s => s.original === original);
+    return match ? match.suggestion : '';
   }
   function formatMentoringTips(whyText) {
     if (!whyText) return [];
@@ -160,7 +165,7 @@ export default function Home() {
                 <div className="flex gap-3 my-2">
                   <button
                     className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg"
-                    onClick={() => acceptSuggestion(sug.original, sug.suggestion)}
+                    onClick={() => acceptSuggestion(sug.original)}
                   >
                     Accept
                   </button>
@@ -202,7 +207,7 @@ export default function Home() {
                     />
                     <div className="flex gap-2">
                       <button
-                        onClick={() => acceptSuggestion(sug.original, tempRevision)}
+                        onClick={() => acceptSuggestion(sug.original)}
                         className="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded text-sm flex-1"
                       >
                         Accept
