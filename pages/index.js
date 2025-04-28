@@ -9,12 +9,14 @@ export default function Home() {
   const [justifications, setJustifications] = useState([]);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [editableText, setEditableText] = useState('');
   async function handleSubmit() {
     setLoading(true);
     setError('');
     setSuggestions([]);
     setRewrittenText('');
     setJustifications([]);
+    setEditableText('');
     try {
       const res = await fetch('/api/gpt', {
         method: 'POST',
@@ -30,12 +32,22 @@ export default function Home() {
         setJustifications(data.justifications || []);
       } else {
         setSuggestions(data.suggestions);
+        setEditableText(text);
       }
     } catch (err) {
       setError(err.message);
     } finally {
       setLoading(false);
     }
+  }
+  function acceptSuggestion(original, suggestion) {
+    const regex = new RegExp(original.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g');
+    const updated = editableText.replace(regex, suggestion);
+    setEditableText(updated);
+    setSuggestions(prev => prev.filter(sug => sug.original !== original));
+  }
+  function rejectSuggestion(original) {
+    setSuggestions(prev => prev.filter(sug => sug.original !== original));
   }
   function formatRewrittenText(text) {
     const cleaned = text.replace(/"""|“””|“|”/g, '').replace(/\n/g, ' ').trim();
@@ -50,8 +62,11 @@ export default function Home() {
         className="w-full p-3 border rounded mb-4"
         rows="10"
         placeholder="Paste your text here..."
-        value={text}
-        onChange={(e) => setText(e.target.value)}
+        value={mode === 'Suggest Changes' && editableText ? editableText : text}
+        onChange={(e) => {
+          setText(e.target.value);
+          if (mode === 'Suggest Changes') setEditableText(e.target.value);
+        }}
       />
       <div className="flex gap-4 mb-4">
         <select
@@ -98,7 +113,32 @@ export default function Home() {
           </ul>
         </div>
       )}
-      {suggestions.length > 0 && <SuggestionPanel suggestions={suggestions} />}
+      {suggestions.length > 0 && (
+        <div className="bg-white p-4 border rounded mb-6">
+          <h2 className="text-2xl font-semibold mb-2">Lulu's Suggestions</h2>
+          {suggestions.map((sug, index) => (
+            <div key={index} className="border-t py-2">
+              <p><strong>Original:</strong> {sug.original}</p>
+              <p><strong>Suggestion:</strong> {sug.suggestion}</p>
+              <p><strong>Why:</strong> {sug.why}</p>
+              <div className="flex gap-2 mt-2">
+                <button
+                  className="bg-green-500 text-white px-2 py-1 rounded"
+                  onClick={() => acceptSuggestion(sug.original, sug.suggestion)}
+                >
+                  Accept
+                </button>
+                <button
+                  className="bg-red-500 text-white px-2 py-1 rounded"
+                  onClick={() => rejectSuggestion(sug.original)}
+                >
+                  Reject
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
