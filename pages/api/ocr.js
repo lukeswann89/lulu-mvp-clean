@@ -1,22 +1,33 @@
 import { formidable } from 'formidable';
-import fs from 'fs';
+import fs, { existsSync, mkdirSync } from 'fs';
 export const config = { api: { bodyParser: false } };
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+  // Ensure upload directory exists
+  const uploadPath = './public/uploads';
+  if (!existsSync(uploadPath)) mkdirSync(uploadPath, { recursive: true });
   const form = formidable({
-    uploadDir: './public/uploads',
+    uploadDir: uploadPath,
     keepExtensions: true,
     multiples: false,
     filename: (name, ext, part, form) => `${Date.now()}-${part.originalFilename}`
   });
   form.parse(req, async (err, fields, files) => {
-    if (err) return res.status(500).json({ error: 'File parsing error.' });
+    if (err) {
+      console.error('FORM PARSE ERROR:', err);
+      return res.status(500).json({ error: 'Form parsing error' });
+    }
+    console.log('FILES RECEIVED:', files);
     const fileKey = Object.keys(files)[0];
     const fileArray = files[fileKey];
     const file = Array.isArray(fileArray) ? fileArray[0] : fileArray;
+    console.log('FILE KEY:', fileKey);
+    console.log('SELECTED FILE:', file);
     if (!file || !file.filepath) {
-      console.error('Invalid file object:', files);
-      return res.status(400).json({ error: 'File not uploaded properly.' });
+      return res.status(400).json({
+        error: 'No valid file received',
+        debug: { fileKey, file, allKeys: Object.keys(files) }
+      });
     }
     const imageData = fs.readFileSync(file.filepath, { encoding: 'base64' });
     try {
@@ -40,12 +51,12 @@ export default async function handler(req, res) {
         const text = visionJson.responses[0]?.fullTextAnnotation?.text || '';
         return res.status(200).json({ text });
       } catch (err) {
-        console.error('Failed to parse Vision API response:', rawText);
-        return res.status(500).json({ error: 'Invalid response from Google Vision API.' });
+        console.error('Failed to parse Google Vision response:', rawText);
+        return res.status(500).json({ error: 'Google Vision returned invalid JSON', rawText });
       }
     } catch (error) {
-      console.error('OCR error:', error);
-      res.status(500).json({ error: 'Failed to process image with Vision API.' });
+      console.error('OCR ERROR:', error);
+      return res.status(500).json({ error: 'Failed to call Google Vision API', error });
     }
   });
 }
