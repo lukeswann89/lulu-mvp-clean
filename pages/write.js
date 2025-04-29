@@ -1,63 +1,54 @@
 import { useState } from 'react';
 export default function Write() {
-  const [selectedFile, setSelectedFile] = useState(null);
-  const [originalImage, setOriginalImage] = useState(null);
-  const [ocrText, setOcrText] = useState('');
-  const [cleanedText, setCleanedText] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const handleFileChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      setSelectedFile(file);
-      setOriginalImage(URL.createObjectURL(file));
-    }
-  };
-  const handleUpload = async () => {
-    if (!selectedFile) return;
-    setLoading(true);
-    setError('');
-    setOcrText('');
-    setCleanedText('');
+  const [image, setImage] = useState(null);
+  const [text, setText] = useState('');
+  const [status, setStatus] = useState('');
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setStatus('Processing...');
     const formData = new FormData();
-    formData.append('file', selectedFile);
+    formData.append('file', image);
     try {
-      const ocrRes = await fetch('/api/ocr', { method: 'POST', body: formData });
-      const ocrData = await ocrRes.json();
-      if (!ocrRes.ok) throw new Error(ocrData.error || 'OCR failed.');
-      setOcrText(ocrData.text);
-      const cleanRes = await fetch('/api/cleanup', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text: ocrData.text }) });
-      const cleanData = await cleanRes.json();
-      if (!cleanRes.ok) throw new Error(cleanData.error || 'Cleanup failed.');
-      setCleanedText(cleanData.cleanedText);
+      const res = await fetch('/api/ocr', {
+        method: 'POST',
+        body: formData,
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setText(data.text);
+        setStatus('Done!');
+      } else {
+        setStatus(`Error: ${data.error}`);
+        console.error(data.debug || data.error);
+      }
     } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
+      setStatus('Error uploading file');
+      console.error(err);
     }
   };
   return (
-    <div className="min-h-screen bg-gray-100 p-8">
-      <div className="max-w-6xl mx-auto bg-white shadow-md rounded-xl p-8">
-        <h1 className="text-4xl font-bold mb-6 text-center">Lulu - Write from Handwriting</h1>
-        <input type="file" accept="image/*,application/pdf" onChange={handleFileChange} className="mb-4" />
-        <button onClick={handleUpload} disabled={loading || !selectedFile} className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-semibold mb-6">
-          {loading ? 'Processing...' : 'Convert to Text'}
+    <div className="p-8 max-w-2xl mx-auto">
+      <h1 className="text-2xl font-bold mb-4">Upload Handwriting</h1>
+      <form onSubmit={handleSubmit} encType="multipart/form-data" className="space-y-4">
+        <input
+          type="file"
+          accept="image/*"
+          name="file"
+          required
+          onChange={(e) => setImage(e.target.files[0])}
+          className="border p-2 rounded"
+        />
+        <button type="submit" className="bg-blue-600 text-white px-4 py-2 rounded">
+          Upload & Process
         </button>
-        {error && <div className="text-red-500 mb-4">{error}</div>}
-        {originalImage && (
-          <div className="flex gap-8">
-            <div className="flex-1">
-              <h2 className="text-2xl font-semibold mb-2">Original Handwriting</h2>
-              <img src={originalImage} alt="Handwriting" className="rounded-lg border" />
-            </div>
-            <div className="flex-1">
-              <h2 className="text-2xl font-semibold mb-2">Interpreted Digital Text</h2>
-              <textarea value={cleanedText} onChange={(e) => setCleanedText(e.target.value)} className="w-full p-4 border rounded-lg min-h-[400px]" />
-            </div>
-          </div>
-        )}
-      </div>
+      </form>
+      <p className="mt-4 text-gray-600">{status}</p>
+      {text && (
+        <div className="mt-6 bg-gray-100 p-4 rounded">
+          <h2 className="font-semibold mb-2">Extracted Text:</h2>
+          <pre className="whitespace-pre-wrap">{text}</pre>
+        </div>
+      )}
     </div>
   );
 }
