@@ -5,6 +5,7 @@ export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
   const form = formidable();
   form.parse(req, async (err, fields, files) => {
+    console.log('FILES:', files);
     if (err) return res.status(500).json({ error: 'File parsing error.' });
     const file = files.file;
     if (!file) return res.status(400).json({ error: 'No file uploaded.' });
