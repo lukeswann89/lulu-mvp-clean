@@ -5,11 +5,17 @@ export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
   const form = formidable();
   form.parse(req, async (err, fields, files) => {
-    console.log('FILES:', files);
     if (err) return res.status(500).json({ error: 'File parsing error.' });
-    const file = files.file;
-    if (!file) return res.status(400).json({ error: 'No file uploaded.' });
+
+    const fileKey = Object.keys(files)[0];
+    const file = files[fileKey];
+    if (!file || !file.filepath) {
+      console.error('Invalid file object:', files);
+      return res.status(400).json({ error: 'File not uploaded properly.' });
+    }
+
     const imageData = fs.readFileSync(file.filepath, { encoding: 'base64' });
+
     try {
       const visionResponse = await fetch(`https://vision.googleapis.com/v1/images:annotate?key=${process.env.GOOGLE_VISION_API_KEY}`, {
         method: 'POST',
@@ -24,6 +30,7 @@ export default async function handler(req, res) {
           ]
         }),
       });
+
       const rawText = await visionResponse.text();
       try {
         const visionJson = JSON.parse(rawText);
