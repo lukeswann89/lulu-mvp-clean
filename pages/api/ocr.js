@@ -3,7 +3,6 @@ import fs, { existsSync, mkdirSync } from 'fs';
 export const config = { api: { bodyParser: false } };
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
-  // Ensure upload directory exists
   const uploadPath = './public/uploads';
   if (!existsSync(uploadPath)) mkdirSync(uploadPath, { recursive: true });
   const form = formidable({
