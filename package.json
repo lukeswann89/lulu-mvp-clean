@@ -8,7 +8,7 @@
   },
   "dependencies": {
     "autoprefixer": "^10.4.14",
-    "formidable": "^3.5.4",
+    "formidable": "^3.5.0",
     "next": "^13.4.12",
     "postcss": "^8.4.24",
     "react": "18.2.0",
