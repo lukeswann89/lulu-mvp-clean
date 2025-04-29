@@ -26,6 +26,7 @@ export default async function handler(req, res) {
       const rawText = await visionResponse.text();
       try {
         const visionJson = JSON.parse(rawText);
+        console.log('Google Vision Response:', JSON.stringify(visionJson, null, 2));
         const text = visionJson.responses[0]?.fullTextAnnotation?.text || '';
         return res.status(200).json({ text });
       } catch (err) {
